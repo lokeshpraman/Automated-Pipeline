@@ -1,21 +1,15 @@
 ---
-- name: Dockerized Server Setup and Deployment
+- name: Containerized Server Setup and Deployment (Podman)
   hosts: webservers
   become: yes
 
   tasks:
-    - name: Step 1 - Install Docker using the official setup script
-      shell: curl -fsSL https://get.docker.com | sh
-      args:
-        creates: /usr/bin/docker
+    - name: Step 1 - Install Podman (The modern container engine)
+      dnf:
+        name: podman
+        state: present
 
-    - name: Step 2 - Start and enable the Docker service
-      systemd:
-        name: docker
-        state: started
-        enabled: yes
-
-    - name: Step 3 - Copy your application files to the cloud server
+    - name: Step 2 - Copy your application files to the cloud server
       copy:
         src: "{{ item }}"
         dest: /home/ec2-user/
@@ -23,11 +17,11 @@
         - app.py
         - Dockerfile
 
-    - name: Step 4 - Build the Docker Image
-      shell: docker build -t my-flask-app /home/ec2-user/
+    - name: Step 3 - Build the Container Image
+      shell: podman build -t my-flask-app /home/ec2-user/
 
-    - name: Step 5 - Assassinate the old container (if it exists)
-      shell: docker rm -f my-flask-container || true
+    - name: Step 4 - Assassinate the old container (if it exists)
+      shell: podman rm -f my-flask-container || true
 
-    - name: Step 6 - Run the new Docker Container
-      shell: docker run -d --name my-flask-container -p 5001:5001 my-flask-app
+    - name: Step 5 - Run the new Container
+      shell: podman run -d --name my-flask-container -p 5001:5001 my-flask-app
