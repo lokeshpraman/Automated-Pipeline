@@ -1,33 +1,33 @@
 ---
-- name: Initial Server Setup and Application Deployment
+- name: Dockerized Server Setup and Deployment
   hosts: webservers
   become: yes
 
   tasks:
-    - name: Step 1 - Ensure Python 3 and Pip are installed
+    - name: Step 1 - Ensure Docker is installed
       dnf:
-        name:
-          - python3
-          - python3-pip
+        name: docker
         state: present
 
-    - name: Step 2 - Install Flask on the server
-      pip:
-        name: Flask
-        executable: pip3
+    - name: Step 2 - Start and enable the Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
 
-    - name: Step 3 - Copy your local app.py to the cloud server
+    - name: Step 3 - Copy your application files to the cloud server
       copy:
-        src: app.py
-        dest: /home/ec2-user/app.py
-        owner: ec2-user
-        mode: '0644'
+        src: "{{ item }}"
+        dest: /home/ec2-user/
+      loop:
+        - app.py
+        - Dockerfile
 
-    - name: Step 3.5 - Gracefully stop old application
-      shell: "kill $(cat /home/ec2-user/app.pid) || true"
-      become: yes
-      ignore_errors: yes
+    - name: Step 4 - Build the Docker Image
+      shell: docker build -t my-flask-app /home/ec2-user/
 
-    - name: Step 4 - Start the Flask application in the background
-      shell: nohup python3 /home/ec2-user/app.py > /home/ec2-user/app.log 2>&1 & echo $! > /home/ec2-user/app.pid
-      become: no
+    - name: Step 5 - Assassinate the old container (if it exists)
+      shell: docker rm -f my-flask-container || true
+
+    - name: Step 6 - Run the new Docker Container
+      shell: docker run -d --name my-flask-container -p 5001:5001 my-flask-app
