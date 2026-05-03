@@ -1,0 +1,28 @@
+---
+- name: Initial Server Setup and Application Deployment
+  hosts: webservers
+  become: yes # This tells Ansible to use root (admin) privileges for installations
+
+  tasks:
+    - name: Step 1 - Ensure Python 3 and Pip are installed
+      dnf:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Step 2 - Install Flask on the server
+      pip:
+        name: Flask
+        executable: pip3
+
+    - name: Step 3 - Copy your local app.py to the cloud server
+      copy:
+        src: app.py
+        dest: /home/ec2-user/app.py
+        owner: ec2-user
+        mode: '0644'
+
+    - name: Step 4 - Start the Flask application in the background
+      shell: nohup python3 /home/ec2-user/app.py > /home/ec2-user/app.log 2>&1 &
+      become: no # We run the app as the normal ec2-user, not root
