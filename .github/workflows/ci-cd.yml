@@ -1,0 +1,32 @@
+name: Automated AWS Deployment
+
+# This tells GitHub to run this script ONLY when code is pushed to the 'main' branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    # GitHub spins up its own temporary Linux server to run this job
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Grab the latest code from the repository
+        uses: actions/checkout@v4
+
+      - name: 2. Install Ansible on the GitHub runner
+        run: sudo apt-get update && sudo apt-get install -y ansible
+
+      - name: 3. Retrieve the locked SSH Key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+          chmod 400 private_key.pem
+
+      - name: 4. Build the Ansible Phone Book (Inventory)
+        run: |
+          echo "[webservers]" > inventory.ini
+          echo "pipeline-server ansible_host=${{ secrets.EC2_HOST }} ansible_user=${{ secrets.EC2_USER }} ansible_ssh_private_key_file=private_key.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory.ini
+
+      - name: 5. Execute the Deployment Playbook!
+        run: ansible-playbook -i inventory.ini deploy.yml
