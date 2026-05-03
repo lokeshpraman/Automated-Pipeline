@@ -1,7 +1,7 @@
 ---
 - name: Initial Server Setup and Application Deployment
   hosts: webservers
-  become: yes # This tells Ansible to use root (admin) privileges for installations
+  become: yes
 
   tasks:
     - name: Step 1 - Ensure Python 3 and Pip are installed
@@ -23,6 +23,11 @@
         owner: ec2-user
         mode: '0644'
 
+    - name: Step 3.5 - Gracefully stop old application
+      shell: "kill $(cat /home/ec2-user/app.pid) || true"
+      become: yes
+      ignore_errors: yes
+
     - name: Step 4 - Start the Flask application in the background
-      shell: nohup python3 /home/ec2-user/app.py > /home/ec2-user/app.log 2>&1 &
-      become: no # We run the app as the normal ec2-user, not root
+      shell: nohup python3 /home/ec2-user/app.py > /home/ec2-user/app.log 2>&1 & echo $! > /home/ec2-user/app.pid
+      become: no
